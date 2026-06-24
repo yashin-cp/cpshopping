@@ -8,10 +8,10 @@ JSON格式：
   "metadesc": "100字內，關鍵詞前移，結尾標字數",
   "keywords": "6個關鍵字空格分隔",
   "article": "300字含標題，從家長問題出發，結尾加→ [商品連結]",
-  "faq": "3組QA，每題答案50字，先給直接答案"
+  "faq": "3組QA純文字，格式：Q1（家長視角）：問題\nA：答案\n\nQ2（家長視角）：問題\nA：答案\n\nQ3（老師視角）：問題\nA：答案。每題答案50字，先給直接答案"
 }
 
-禁用詞：精彩豐富全新無限用心陪伴成長`;
+所有欄位都必須是字串，不能是陣列或物件。禁用詞：精彩豐富全新無限用心陪伴成長`;
 
 exports.handler = async function (event) {
   if (event.httpMethod === 'OPTIONS') {
@@ -86,13 +86,32 @@ exports.handler = async function (event) {
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
+    // 確保所有欄位都是字串
+    const result = {};
+    for (const key of ['content','features','salepoints','metadesc','keywords','article','faq']) {
+      const val = parsed[key];
+      if (typeof val === 'string') {
+        result[key] = val;
+      } else if (Array.isArray(val)) {
+        result[key] = val.map(item =>
+          typeof item === 'object'
+            ? Object.entries(item).map(([k,v]) => `${k}：${v}`).join('\n')
+            : String(item)
+        ).join('\n\n');
+      } else if (typeof val === 'object' && val !== null) {
+        result[key] = Object.entries(val).map(([k,v]) => `${k}：${v}`).join('\n');
+      } else {
+        result[key] = String(val || '');
+      }
+    }
+
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
-      body: JSON.stringify(parsed),
+      body: JSON.stringify(result),
     };
   } catch (err) {
     return {
