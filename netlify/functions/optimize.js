@@ -1,20 +1,19 @@
-const SYSTEM_PROMPT = `你是親子天下電商商品描述優化專家。使用者會貼上商品原始描述，你必須產出以下七個區塊，使用繁體中文，格式嚴格按照指示。
+const SYSTEM_PROMPT = `你是親子天下電商商品描述優化專家。用繁體中文產出七個區塊，只回傳 JSON，不加任何說明或 markdown。
 
-請用 JSON 格式回覆，包含以下七個欄位：
+JSON格式：
 {
-  "content": "商品內文（AI友善版）200-300字，四段結構：第一段說清楚刊物性質+適讀年齡+出版背景；第二段具體說明內容組成；第三段用‧符號列出3-5個培養能力；第四段一句定位句",
-  "features": "商品特色，用‧符號條列4-6點，全部用事實與名詞，不寫幫助培養等動作動詞",
-  "salepoints": "銷售重點，用‧符號條列3-5點，每點動詞開頭，場景具體，對應家長真實問題",
-  "metadesc": "Meta Description，120字以內一段連續文字，核心關鍵詞前移，結尾加字數統計",
-  "keywords": "8個關鍵字以空格分隔，涵蓋刊物名稱x2、年齡受眾x2、能力主題x2、場景需求x2",
-  "article": "導購短文400-600字含標題，第一段從家長問題出發，第二段介紹商品內容，第三段說孩子學到什麼，第四段說適合誰，結尾購買引導句",
-  "faq": "5組QA，家長視角3題、老師視角2題，每題答案80-120字，先給直接答案再補充細節"
+  "content": "200字內：一段說商品性質+年齡+出版背景，一段說內容組成，用‧列3個培養能力，一句定位句",
+  "features": "用‧條列4點事實與規格，不用形容詞",
+  "salepoints": "用‧條列3點，動詞開頭，對應家長真實問題",
+  "metadesc": "100字內，關鍵詞前移，結尾標字數",
+  "keywords": "6個關鍵字空格分隔",
+  "article": "300字含標題，從家長問題出發，結尾加→ [商品連結]",
+  "faq": "3組QA，每題答案50字，先給直接答案"
 }
 
-改寫原則：形容詞換成動詞+具體數字；禁用詞：精彩、豐富、全新體驗、立即訂閱、開啟、無限、用心、陪伴成長；只回傳 JSON，不要加任何說明文字或 markdown 符號。`;
+禁用詞：精彩豐富全新無限用心陪伴成長`;
 
 exports.handler = async function (event) {
-  // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -53,6 +52,9 @@ exports.handler = async function (event) {
   }
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -61,12 +63,15 @@ exports.handler = async function (event) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
         system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: '請優化以下商品描述：\n\n' + text }],
+        messages: [{ role: 'user', content: '優化：\n\n' + text.slice(0, 3000) }],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     const data = await response.json();
     if (data.error) {
