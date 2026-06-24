@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>親子天下｜商品描述優化工具</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg-secondary: #f5f4f0; --bg-tertiary: #edece8;
+    --text: #1a1a1a; --text-secondary: #6b6b6b; --text-tertiary: #9a9a9a;
+    --border: rgba(0,0,0,0.12); --border-md: rgba(0,0,0,0.22);
+    --radius-md: 8px; --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --danger: #c0392b; --accent: #2c3e50;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e; --bg-secondary: #2c2c2e; --bg-tertiary: #3a3a3c;
+      --text: #f0eeea; --text-secondary: #aeaeb2; --text-tertiary: #636366;
+      --border: rgba(255,255,255,0.10); --border-md: rgba(255,255,255,0.20);
+      --danger: #ff6b6b; --accent: #a8c7fa;
+    }
+  }
+  body { font-family: var(--font); background: var(--bg-tertiary); color: var(--text); min-height: 100vh; line-height: 1.7; }
+  header { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 0 24px; height: 52px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
+  .logo-mark { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  header h1 { font-size: 15px; font-weight: 500; color: var(--text); }
+  header span { font-size: 13px; color: var(--text-tertiary); margin-left: 4px; }
+  #logout-btn { margin-left: auto; font-size: 13px; padding: 5px 12px; border-radius: var(--radius-md); border: 0.5px solid var(--border-md); background: transparent; color: var(--text-secondary); cursor: pointer; }
+  #logout-btn:hover { background: var(--bg-secondary); }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  #login-screen { min-height: calc(100vh - 52px); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+  .login-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 2rem 2.5rem; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; }
+  .login-card h2 { font-size: 17px; font-weight: 500; text-align: center; }
+  .login-card p { font-size: 13px; color: var(--text-secondary); text-align: center; }
+  #pw-input { width: 100%; padding: 10px 14px; font-size: 15px; border-radius: var(--radius-md); border: 0.5px solid var(--border-md); background: var(--bg); color: var(--text); outline: none; }
+  #login-error { font-size: 13px; color: var(--danger); text-align: center; display: none; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px 16px; font-size: 15px; font-weight: 500; border-radius: var(--radius-md); border: 0.5px solid var(--border-md); background: var(--bg); color: var(--text); cursor: pointer; transition: background 0.15s; }
+  .btn:hover { background: var(--bg-secondary); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: transparent; }
+  .btn-primary:hover { opacity: 0.9; background: var(--accent); }
+  #app-screen { display: none; }
+  .section-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+  textarea#input-text { width: 100%; min-height: 200px; font-size: 14px; font-family: var(--font); line-height: 1.7; resize: vertical; padding: 14px; border-radius: var(--radius-md); border: 0.5px solid var(--border-md); background: var(--bg); color: var(--text); outline: none; display: block; margin-bottom: 10px; }
+  #status-bar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); min-height: 22px; margin-top: 8px; }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--border-md); border-top-color: var(--text-secondary); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #output-area { display: none; margin-top: 28px; }
+  .output-header { margin-bottom: 14px; }
+  .output-header h2 { font-size: 15px; font-weight: 500; }
+  .block-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 10px; overflow: hidden; }
+  .block-header { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; cursor: pointer; user-select: none; border-bottom: 0.5px solid var(--border); gap: 8px; }
+  .block-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .block-icon { width: 24px; height: 24px; border-radius: 6px; background: var(--bg-secondary); border: 0.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .block-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .copy-btn { font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 0.5px solid var(--border-md); background: transparent; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+  .copy-btn:hover { background: var(--bg-secondary); }
+  .chevron { font-size: 13px; color: var(--text-tertiary); transition: transform 0.2s; flex-shrink: 0; }
+  .chevron.closed { transform: rotate(-90deg); }
+  .block-body { padding: 16px; font-size: 14px; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+  .block-body.hidden { display: none; }
+  #copy-all-wrap { margin-top: 6px; }
+  footer { text-align: center; font-size: 12px; color: var(--text-tertiary); padding: 24px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-mark">親</div>
+  <h1>商品描述優化工具 <span>親子天下</span></h1>
+  <button id="logout-btn" style="display:none;" onclick="logout()">登出</button>
+</header>
+<div id="login-screen">
+  <div class="login-card">
+    <h2>商品描述優化工具</h2>
+    <p>專為上架同仁設計，貼上商品描述自動產出七個 SEO 區塊</p>
+    <input type="password" id="pw-input" placeholder="請輸入密碼" autocomplete="current-password" />
+    <div id="login-error">密碼錯誤，請再試一次</div>
+    <button class="btn btn-primary" onclick="tryLogin()">進入</button>
+  </div>
+</div>
+<div id="app-screen">
+  <main>
+    <p class="section-label">貼上商品描述原文（商品頁所有文字皆可）</p>
+    <textarea id="input-text" placeholder="將商品頁的商品說明、規格、特色、課程章節等所有文字貼在這裡…"></textarea>
+    <button class="btn btn-primary" id="run-btn" onclick="runOptimize()">✦ 開始優化</button>
+    <div id="status-bar">
+      <div class="spinner" id="spinner"></div>
+      <span id="status-text"></span>
+    </div>
+    <div id="output-area">
+      <div class="output-header"><h2>優化結果</h2></div>
+      <div id="blocks-container"></div>
+      <div id="copy-all-wrap">
+        <button class="btn" id="copy-all-btn" onclick="copyAll()">⎘ 複製全部內容</button>
+      </div>
+    </div>
+    <footer>親子天下電商團隊內部工具 · 由 Claude AI 驅動</footer>
+  </main>
+</div>
+<script>
+const CORRECT_PW = 'cpj2025';
+// 使用相對路徑，Netlify 會自動路由到 Function
+const FUNCTION_URL = '/.netlify/functions/optimize';
+const BLOCKS_CONFIG = [
+  { key: 'content',    label: '商品內文（AI 友善版）',          icon: '📝' },
+  { key: 'features',   label: '商品特色（SalePageFeatures）',   icon: '📋' },
+  { key: 'salepoints', label: '銷售重點（SalePageSalePoints）', icon: '⭐' },
+  { key: 'metadesc',   label: 'Meta Description',               icon: '🏷' },
+  { key: 'keywords',   label: 'Meta Keywords',                  icon: '🔑' },
+  { key: 'article',    label: '導購短文',                       icon: '📰' },
+  { key: 'faq',        label: 'FAQ 問答區塊',                   icon: '❓' },
+];
+let parsedData = {};
+
+function tryLogin() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === CORRECT_PW) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('logout-btn').style.display = 'flex';
+    sessionStorage.setItem('auth', '1');
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+function logout() {
+  sessionStorage.removeItem('auth');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('pw-input').value = '';
+}
+if (sessionStorage.getItem('auth') === '1') {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('logout-btn').style.display = 'flex';
+}
+function setStatus(msg, loading) {
+  document.getElementById('status-text').textContent = msg;
+  document.getElementById('spinner').style.display = loading ? 'block' : 'none';
+}
+async function runOptimize() {
+  const input = document.getElementById('input-text').value.trim();
+  if (!input) { setStatus('請先貼上商品描述'); return; }
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  document.getElementById('output-area').style.display = 'none';
+  setStatus('AI 分析中，約需 30–60 秒…', true);
+  try {
+    const res = await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: input }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '伺服器錯誤 ' + res.status);
+    parsedData = data;
+    renderBlocks(data);
+    document.getElementById('output-area').style.display = 'block';
+    setStatus('完成！共產出 7 個區塊', false);
+    document.getElementById('output-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    setStatus('發生錯誤：' + err.message, false);
+    console.error(err);
+  }
+  btn.disabled = false;
+}
+function renderBlocks(data) {
+  const container = document.getElementById('blocks-container');
+  container.innerHTML = '';
+  BLOCKS_CONFIG.forEach(({ key, label, icon }) => {
+    const text = data[key] || '（無內容）';
+    const card = document.createElement('div');
+    card.className = 'block-card';
+    const header = document.createElement('div');
+    header.className = 'block-header';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'block-title';
+    titleEl.innerHTML = '<div class="block-icon">' + icon + '</div>' + label;
+    const actions = document.createElement('div');
+    actions.className = 'block-actions';
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-btn';
+    copyBtn.textContent = '複製';
+    copyBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(data[key] || '');
+      copyBtn.textContent = '已複製 ✓';
+      setTimeout(() => { copyBtn.textContent = '複製'; }, 1500);
+    });
+    const chevron = document.createElement('span');
+    chevron.className = 'chevron';
+    chevron.textContent = '▾';
+    actions.appendChild(copyBtn);
+    actions.appendChild(chevron);
+    header.appendChild(titleEl);
+    header.appendChild(actions);
+    const body = document.createElement('div');
+    body.className = 'block-body';
+    body.textContent = text;
+    header.addEventListener('click', () => {
+      const isOpen = !body.classList.contains('hidden');
+      body.classList.toggle('hidden', isOpen);
+      chevron.classList.toggle('closed', isOpen);
+    });
+    card.appendChild(header);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+function copyAll() {
+  const all = BLOCKS_CONFIG.map(({ key, label }) => '【' + label + '】\n' + (parsedData[key] || '')).join('\n\n---\n\n');
+  navigator.clipboard.writeText(all);
+  const btn = document.getElementById('copy-all-btn');
+  btn.textContent = '✓ 已複製全部內容';
+  setTimeout(() => { btn.textContent = '⎘ 複製全部內容'; }, 2000);
+}
+</script>
+</body>
+</html>
