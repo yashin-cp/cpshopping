@@ -1,7 +1,8 @@
-const SYSTEM_PROMPT = `你是親子天下電商商品描述優化專家。用繁體中文產出七個區塊，只回傳 JSON，不加任何說明或 markdown。
+const SYSTEM_PROMPT = `你是親子天下電商商品描述優化專家。用繁體中文產出八個區塊，只回傳 JSON，不加任何說明或 markdown。
 
 JSON格式：
 {
+  "seotitle": "SEO商品標題：書籍格式為『書名＋空格＋作者』，課程或教具格式為『商品名稱＋核心關鍵詞』，80字以內",
   "content": "200字內：一段說商品性質+年齡+出版背景，一段說內容組成，用‧列3個培養能力，一句定位句",
   "features": "用‧條列4點事實與規格，不用形容詞",
   "salepoints": "用‧條列3點，動詞開頭，對應家長真實問題",
@@ -86,9 +87,8 @@ exports.handler = async function (event) {
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
-    // 確保所有欄位都是字串
     const result = {};
-    for (const key of ['content','features','salepoints','metadesc','keywords','article','faq']) {
+    for (const key of ['seotitle','content','features','salepoints','metadesc','keywords','article','faq']) {
       const val = parsed[key];
       if (typeof val === 'string') {
         result[key] = val;
